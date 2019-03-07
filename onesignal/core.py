@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import requests
 
 from .errors import OneSignalAPIError
@@ -14,12 +16,13 @@ class OneSignal:
         app_id: OneSignal app id
         rest_api_key: secret OneSignal rest api key
     """
-    base_api = "https://onesignal.com/api/v1/"
+    base_api = 'https://onesignal.com/api/v1/'
 
     def __init__(self, app_id, rest_api_key):
         """Inits OneSignal with connection details"""
         self.app_id = app_id
         self.rest_api_key = rest_api_key
+        self.session = requests.session()
 
     def request(self, method, endpoint, json={}):
         """Sends a request to the OneSignal API
@@ -36,19 +39,19 @@ class OneSignal:
             OneSignalAPIError: OneSignal API request was not successful
         """
 
-        r = requests.request(
+        response = self.session.request(
             method,
             self.base_api + endpoint,
             json=json,
             headers={
-                "Authorization": "Basic " + self.rest_api_key
+                'Authorization': 'Basic ' + self.rest_api_key
             }
         )
 
-        if r.status_code != 200:
-            raise OneSignalAPIError(r.json())
+        if response.status_code != HTTPStatus.OK:
+            raise OneSignalAPIError(response.json())
 
-        return r.json()
+        return response
 
     def send(self, notification):
         """Send a notification
@@ -61,18 +64,16 @@ class OneSignal:
         """
 
         if isinstance(self.app_id, str):
-            app_id_obj = {"app_id": self.app_id}
+            app_id_obj = {'app_id': self.app_id}
         elif isinstance(self.app_id, list):
-            app_id_obj = {"app_ids": self.app_id}
+            app_id_obj = {'app_ids': self.app_id}
 
         data = merge_dicts(
             notification.get_data(),
             app_id_obj
         )
 
-        response = self.request("post", "notifications", json=data)
-
-        notification.id = response["id"]
+        response = self.request('post', 'notifications', json=data)
 
         return response
 
@@ -90,12 +91,12 @@ class OneSignal:
             notification_id = notification
         else:
             if not notification.id:
-                raise ValueError("The notification was propably not sent yet")
+                raise ValueError('The notification was propably not sent yet')
             notification_id = notification.id
 
         response = self.request(
-            "delete",
-            "notifications/" + notification_id + "?app_id=" + self.app_id
+            'delete',
+            'notifications/' + notification_id + '?app_id=' + self.app_id
         )
 
         return response
@@ -114,12 +115,12 @@ class OneSignal:
             notification_id = notification
         else:
             if not notification.id:
-                raise ValueError("The notification was propably not sent yet")
+                raise ValueError('The notification was propably not sent yet')
             notification_id = notification.id
 
         response = self.request(
-            "get",
-            "notifications/" + notification_id + "?app_id=" + self.app_id
+            'get',
+            'notifications/' + notification_id + '?app_id=' + self.app_id
         )
 
         result = {}
@@ -135,10 +136,10 @@ class OneSignal:
             var: name of variable in camelCase
         """
 
-        result = ""
+        result = ''
         for letter in var:
             if letter == letter.lower():
                 result += letter
             else:
-                result += "_" + letter.lower()
+                result += '_' + letter.lower()
         return result
